@@ -216,6 +216,47 @@ Mọi chuỗi kí tự, nếu giới hạn độ dài key ≤ m và alphabet 26,
   a) Tên gọi: Playfair cipher (còn gọi Playfair square).
 
   b) Thuật toán mã hoá, thuật toán giải mã
+  Tạo bảng khóa 5×5
+
+- Dùng từ khóa, loại bỏ ký tự trùng lặp.
+
+Ghép I/J (hoặc bỏ J).
+
+Điền các chữ cái còn lại của bảng chữ cái.
+
+-  Tiền xử lý bản rõ
+
+Đưa tất cả về chữ in hoa.
+
+Thay J → I.
+
+Bỏ ký tự không phải chữ cái.
+
+Chia thành từng cặp ký tự (digraph):
+
+Nếu hai chữ trong cùng cặp giống nhau → chèn ‘X’ vào giữa.
+
+Nếu chuỗi có số ký tự lẻ → thêm ‘X’ vào cuối.
+
+-  Mã hóa từng cặp (A,B)
+
+Xác định vị trí (r1,c1), (r2,c2) của A và B trong bảng.
+
+Cùng hàng: thay mỗi ký tự bằng ký tự bên phải (quay vòng nếu ở cuối hàng).
+
+Cùng cột: thay mỗi ký tự bằng ký tự bên dưới (quay vòng nếu ở cuối cột).
+
+Khác hàng, khác cột: mỗi ký tự được thay bằng ký tự ở cùng hàng, cột của ký tự còn lại (tạo hình chữ nhật).
+
+-  Giải mã
+
+Thực hiện ngược lại bước mã hóa:
+
+Cùng hàng: lấy ký tự bên trái.
+
+Cùng cột: lấy ký tự bên trên.
+
+Khác hàng, khác cột: áp dụng quy tắc hình chữ nhật như khi mã hóa.
 
   c) Không gian khóa
 
