@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Mã hóa Affine Cipher</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f4f4f9;
+    }
+    h2 {
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin: 10px 0 5px;
+    }
+    textarea, input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 5px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>Thuật toán Affine Cipher</h2>
+  <div class="container">
+    <label for="mode">Chọn chế độ:</label>
+    <select id="mode">
+      <option value="encrypt">Mã hóa</option>
+      <option value="decrypt">Giải mã</option>
+    </select>
+
+    <label for="text">Nhập văn bản:</label>
+    <textarea id="text" rows="3" placeholder="Nhập bản rõ hoặc bản mã..."></textarea>
+
+    <label for="a">Khóa a (nguyên tố cùng 26):</label>
+    <input type="number" id="a" placeholder="Ví dụ: 5">
+
+    <label for="b">Khóa b:</label>
+    <input type="number" id="b" placeholder="Ví dụ: 8">
+
+    <button onclick="runAffine()">Thực hiện</button>
+
+    <div class="result" id="output">Kết quả sẽ hiện ở đây...</div>
+  </div>
+
+  <script>
+    // Ước chung lớn nhất
+    function gcd(a, b) {
+      return b === 0 ? a : gcd(b, a % b);
+    }
+
+    // Nghịch đảo modular của a theo mod m
+    function modInverse(a, m) {
+      a = ((a % m) + m) % m;
+      for (let x = 1; x < m; x++) {
+        if ((a * x) % m === 1) return x;
+      }
+      return -1;
+    }
+
+    // Mã hóa Affine
+    function affineEncrypt(text, a, b) {
+      let result = "";
+      for (let c of text) {
+        if (/[a-zA-Z]/.test(c)) {
+          let base = (c >= 'A' && c <= 'Z') ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
+          let x = c.charCodeAt(0) - base;
+          let enc = (a * x + b) % 26;
+          result += String.fromCharCode(enc + base);
+        } else {
+          result += c;
+        }
+      }
+      return result;
+    }
+
+    // Giải mã Affine
+    function affineDecrypt(text, a, b) {
+      let result = "";
+      let a_inv = modInverse(a, 26);
+      if (a_inv === -1) return "Lỗi: a không có nghịch đảo modulo 26!";
+      for (let c of text) {
+        if (/[a-zA-Z]/.test(c)) {
+          let base = (c >= 'A' && c <= 'Z') ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
+          let y = c.charCodeAt(0) - base;
+          let dec = (a_inv * (y - b + 26)) % 26;
+          result += String.fromCharCode(dec + base);
+        } else {
+          result += c;
+        }
+      }
+      return result;
+    }
+
+    // Hàm chạy khi nhấn nút
+    function runAffine() {
+      let mode = document.getElementById("mode").value;
+      let text = document.getElementById("text").value;
+      let a = parseInt(document.getElementById("a").value);
+      let b = parseInt(document.getElementById("b").value);
+      let output = "";
+
+      if (!a || !b || text.trim() === "") {
+        document.getElementById("output").innerText = "Vui lòng nhập đầy đủ văn bản và khóa!";
+        return;
+      }
+
+      if (gcd(a, 26) !== 1) {
+        document.getElementById("output").innerText = "Khóa a không hợp lệ! Phải nguyên tố cùng 26.";
+        return;
+      }
+
+      if (mode === "encrypt") {
+        output = affineEncrypt(text, a, b);
+      } else {
+        output = affineDecrypt(text, a, b);
+      }
+
+      document.getElementById("output").innerText = "Kết quả: " + output;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Permutation Cipher (Columnar Transposition)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    h2 { color: #2c3e50; text-align: center; }
+    textarea, input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #2980b9; }
+    .output {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 5px;
+      background: #ecf0f1;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>Permutation Cipher (Columnar Transposition)</h2>
+
+  <label>Bản rõ:</label>
+  <textarea id="plaintext" rows="3"></textarea>
+
+  <label>Khóa (một từ bất kỳ):</label>
+  <input type="text" id="key">
+
+  <div>
+    <button onclick="encrypt()">Mã hoá</button>
+    <button onclick="decrypt()">Giải mã</button>
+  </div>
+
+  <div class="output">
+    <strong>Bản mã:</strong>
+    <div id="ciphertext"></div>
+  </div>
+
+  <div class="output">
+    <strong>Bản giải mã:</strong>
+    <div id="decrypted"></div>
+  </div>
+
+  <script>
+    // Sinh thứ tự cột từ khóa
+    function keyOrder(key) {
+      let v = key.split("").map((c, i) => [c, i]);
+      v.sort((a, b) => a[0].localeCompare(b[0]));
+      return v.map(pair => pair[1]);
+    }
+
+    // Mã hoá
+    function permutationEncrypt(plain, key, padChar='X') {
+      let k = key.length;
+      if (k === 0) return "";
+      let rows = Math.ceil(plain.length / k);
+      let total = rows * k;
+
+      let work = plain.padEnd(total, padChar);
+
+      // Tạo ma trận
+      let matrix = [];
+      let idx = 0;
+      for (let r = 0; r < rows; r++) {
+        matrix[r] = [];
+        for (let c = 0; c < k; c++) {
+          matrix[r][c] = work[idx++];
+        }
+      }
+
+      // Sắp xếp cột
+      let order = keyOrder(key);
+
+      // Đọc cột
+      let cipher = "";
+      for (let pos = 0; pos < k; pos++) {
+        let col = order[pos];
+        for (let r = 0; r < rows; r++) {
+          cipher += matrix[r][col];
+        }
+      }
+      return cipher;
+    }
+
+    // Giải mã
+    function permutationDecrypt(cipher, key, padChar='X') {
+      let k = key.length;
+      if (k === 0) return "";
+      let L = cipher.length;
+      let rows = Math.ceil(L / k);
+      let total = rows * k;
+
+      let work = cipher.padEnd(total, padChar);
+
+      let order = keyOrder(key);
+      let cols = Array.from({ length: k }, () => Array(rows).fill(padChar));
+
+      let idx = 0;
+      for (let pos = 0; pos < k; pos++) {
+        let col = order[pos];
+        for (let r = 0; r < rows; r++) {
+          cols[col][r] = work[idx++];
+        }
+      }
+
+      // Đọc hàng
+      let plain = "";
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < k; c++) {
+          plain += cols[c][r];
+        }
+      }
+
+      // Bỏ padChar cuối
+      return plain.replace(new RegExp(padChar+"+$"), "");
+    }
+
+    // Gọi khi bấm nút
+    function encrypt() {
+      let plain = document.getElementById("plaintext").value.trim();
+      let key = document.getElementById("key").value.trim();
+      let cipher = permutationEncrypt(plain, key);
+      document.getElementById("ciphertext").innerText = cipher;
+    }
+
+    function decrypt() {
+      let cipher = document.getElementById("ciphertext").innerText.trim();
+      let key = document.getElementById("key").value.trim();
+      let plain = permutationDecrypt(cipher, key);
+      document.getElementById("decrypted").innerText = plain;
+    }
+  </script>
+</body>
+</html>

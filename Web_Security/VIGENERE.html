@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Vigenère Cipher</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f7f9fc; padding:20px; max-width:720px; margin:auto; }
+    .card { background:#fff; padding:18px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    h2 { text-align:center; margin-top:0; }
+    label { display:block; margin-top:12px; font-weight:700; }
+    textarea, input { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ccc; font-family:monospace; }
+    .row { display:flex; gap:8px; margin-top:10px; }
+    button { padding:10px 14px; border-radius:6px; border:none; background:#2b7cff; color:#fff; cursor:pointer; }
+    button.secondary { background:#4caf50; }
+    .out { margin-top:14px; padding:10px; background:#eef5ff; border-radius:6px; white-space:pre-wrap; font-family:monospace; }
+    .err { color:#b00020; font-weight:700; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Vigenère Cipher</h2>
+
+    <label for="mode">Chế độ</label>
+    <select id="mode">
+      <option value="encrypt">Mã hóa</option>
+      <option value="decrypt">Giải mã</option>
+    </select>
+
+    <label for="text">Văn bản (giữ ký tự không phải chữ nguyên vẹn)</label>
+    <textarea id="text" rows="4" placeholder="Nhập văn bản...">ATTACK AT DAWN</textarea>
+
+    <label for="key">Khóa (chỉ chữ cái được sử dụng)</label>
+    <input id="key" type="text" value="LEMON" placeholder="Nhập khóa">
+
+    <div class="row">
+      <button id="run">Thực hiện</button>
+      <button id="autoExample" class="secondary">Ví dụ (test)</button>
+    </div>
+
+    <div id="err" class="err" style="display:none;"></div>
+
+    <div class="out"><strong>Kết quả:</strong>
+      <div id="result" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // chuyển key thành mảng shift 0..25 (bỏ ký tự không phải chữ)
+    function keyShifts(key) {
+      const shifts = [];
+      for (let ch of key) {
+        if (/[a-zA-Z]/.test(ch)) {
+          shifts.push(ch.toUpperCase().charCodeAt(0) - 65);
+        }
+      }
+      return shifts;
+    }
+
+    function vigenereEncrypt(plain, shifts) {
+      if (shifts.length === 0) return null;
+      let out = '', k = shifts.length, pos = 0;
+      for (let ch of plain) {
+        if (/[A-Za-z]/.test(ch)) {
+          const isUpper = ch === ch.toUpperCase();
+          const base = isUpper ? 65 : 97;
+          const p = ch.charCodeAt(0) - base;
+          const c = (p + shifts[pos % k]) % 26;
+          out += String.fromCharCode(c + base);
+          pos++;
+        } else {
+          out += ch;
+        }
+      }
+      return out;
+    }
+
+    function vigenereDecrypt(cipher, shifts) {
+      if (shifts.length === 0) return null;
+      let out = '', k = shifts.length, pos = 0;
+      for (let ch of cipher) {
+        if (/[A-Za-z]/.test(ch)) {
+          const isUpper = ch === ch.toUpperCase();
+          const base = isUpper ? 65 : 97;
+          const y = ch.charCodeAt(0) - base;
+          const p = (y - shifts[pos % k] + 26) % 26;
+          out += String.fromCharCode(p + base);
+          pos++;
+        } else {
+          out += ch;
+        }
+      }
+      return out;
+    }
+
+    const runBtn = document.getElementById('run');
+    const resultDiv = document.getElementById('result');
+    const errDiv = document.getElementById('err');
+    runBtn.addEventListener('click', () => {
+      errDiv.style.display = 'none'; errDiv.innerText = '';
+      resultDiv.innerText = '';
+      const mode = document.getElementById('mode').value;
+      const text = document.getElementById('text').value;
+      const key = document.getElementById('key').value;
+      const shifts = keyShifts(key);
+      if (shifts.length === 0) {
+        errDiv.style.display = 'block';
+        errDiv.innerText = 'Lỗi: Khóa phải chứa ít nhất một chữ cái.';
+        return;
+      }
+      let out = (mode === 'encrypt') ? vigenereEncrypt(text, shifts) : vigenereDecrypt(text, shifts);
+      resultDiv.innerText = out;
+    });
+
+    // ví dụ test: ATTACK AT DAWN + LEMON => LXFOPV EF RNHR (with spaces kept)
+    document.getElementById('autoExample').addEventListener('click', () => {
+      document.getElementById('text').value = 'ATTACK AT DAWN';
+      document.getElementById('key').value = 'LEMON';
+      document.getElementById('mode').value = 'encrypt';
+      runBtn.click();
+    });
+  </script>
+</body>
+</html>

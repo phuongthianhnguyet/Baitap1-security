@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Playfair Cipher (HTML/JS)</title>
+  <style>
+    body{font-family:Inter,Segoe UI,Roboto,Arial; background:#f6f8fb; color:#1f2937; padding:24px;}
+    .card{max-width:820px;margin:24px auto;padding:18px;border-radius:12px;background:#fff;box-shadow:0 6px 24px rgba(16,24,40,0.08);}
+    h1{margin:0 0 12px;font-size:20px;}
+    label{display:block;margin-top:12px;font-size:14px;}
+    input[type="text"], textarea, select {width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px;box-sizing:border-box;}
+    textarea{min-height:100px;resize:vertical;}
+    .row{display:flex;gap:12px;align-items:center;margin-top:12px;}
+    .btn{padding:10px 14px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;}
+    .btn:active{transform:translateY(1px);}
+    .small{font-size:13px;color:#6b7280}
+    .matrix{display:grid;grid-template-columns:repeat(5,40px);gap:6px;margin-top:10px}
+    .cell{width:40px;height:40px;border-radius:6px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .controls{display:flex;gap:12px;flex-wrap:wrap}
+    .output{white-space:pre-wrap;word-break:break-word;padding:10px;border-radius:8px;background:#0f172a05;border:1px dashed #e6e9ef;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Playfair Cipher — Mã hoá / Giải mã</h1>
+    <div class="small">Dựa trên code C++ bạn đưa. Hỗ trợ tùy chọn giữ chữ thường hoặc dùng chữ hoa theo chuẩn Playfair (J→I).</div>
+
+    <label>Văn bản</label>
+    <textarea id="text" placeholder="Nhập văn bản..."></textarea>
+
+    <label>Khóa (key)</label>
+    <input id="key" type="text" placeholder="Nhập khóa (ví dụ: SECRET)" />
+
+    <div class="row">
+      <div class="controls">
+        <label><input type="radio" name="mode" value="enc" checked> Mã hoá</label>
+        <label><input type="radio" name="mode" value="dec"> Giải mã</label>
+        <label style="margin-left:8px"><input type="checkbox" id="preserveCase"> Giữ chữ thường (không ép in hoa)</label>
+      </div>
+      <button id="go" class="btn">Thực hiện</button>
+      <button id="showMatrix" class="btn" style="background:#10b981">Xem bảng 5x5</button>
+    </div>
+
+    <label>Kết quả</label>
+    <div id="result" class="output"></div>
+
+    <div id="matrixContainer" style="margin-top:14px;"></div>
+  </div>
+
+  <script>
+    // --- Hàm chuẩn hoá chuỗi ---
+    function normalize(s, toLower) {
+      let out = '';
+      for (let ch of s) {
+        if (/[A-Za-z]/.test(ch)) {
+          let c = toLower ? ch.toLowerCase() : ch.toUpperCase();
+          // chuyển J -> I (hoặc j -> i)
+          if ((toLower && c === 'j') || (!toLower && c === 'J')) c = toLower ? 'i' : 'I';
+          out += c;
+        }
+      }
+      return out;
+    }
+
+    // --- Tạo bảng 5x5 từ key ---
+    function makeMatrix(key, toLower) {
+      const alpha = toLower ? 'abcdefghiklmnopqrstuvwxyz' : 'ABCDEFGHIKLMNOPQRSTUVWXYZ';
+      let used = normalize(key, toLower);
+      // loại bỏ ký tự trùng lặp trong used
+      let uniq = '';
+      for (let ch of used) if (uniq.indexOf(ch) === -1) uniq += ch;
+      for (let ch of alpha) if (uniq.indexOf(ch) === -1) uniq += ch;
+      // tạo ma trận 5x5
+      const mat = [];
+      for (let r = 0; r < 5; r++) {
+        mat[r] = [];
+        for (let c = 0; c < 5; c++) mat[r][c] = uniq[r*5 + c];
+      }
+      return mat;
+    }
+
+    // --- Tìm vị trí ký tự ---
+    function findPos(mat, ch) {
+      for (let i=0;i<5;i++) for (let j=0;j<5;j++) if (mat[i][j] === ch) return [i,j];
+      return [-1,-1];
+    }
+
+    // --- Tạo digraphs cho mã hoá ---
+    function makeDigraphs(s) {
+      let res = '';
+      for (let i=0;i<s.length;i++) {
+        let a = s[i];
+        let b = (i+1 < s.length) ? s[i+1] : null;
+        if (b === null) {
+          res += a + 'X';
+        } else if (a === b) {
+          res += a + 'X';
+        } else {
+          res += a + b;
+          i++; // đã dùng thêm ký tự b
+        }
+      }
+      if (res.length % 2) res += 'X';
+      return res;
+    }
+
+    // --- Hàm Playfair chung (enc/dec) ---
+    function playfair(text, key, mode, toLower) {
+      const mat = makeMatrix(key, toLower);
+      let str = (mode === 'enc') ? makeDigraphs(normalize(text, toLower)) : normalize(text, toLower);
+      let shift = (mode === 'enc') ? 1 : 4;
+      let out = '';
+
+      for (let i = 0; i < str.length; i += 2) {
+        const a = str[i], b = str[i+1];
+        const p1 = findPos(mat, a), p2 = findPos(mat, b);
+        const r1 = p1[0], c1 = p1[1], r2 = p2[0], c2 = p2[1];
+        if (r1 === r2) {
+          out += mat[r1][(c1 + shift) % 5];
+          out += mat[r2][(c2 + shift) % 5];
+        } else if (c1 === c2) {
+          out += mat[(r1 + shift) % 5][c1];
+          out += mat[(r2 + shift) % 5][c2];
+        } else {
+          out += mat[r1][c2];
+          out += mat[r2][c1];
+        }
+      }
+
+      if (mode === 'dec') {
+        // Loại 'X' được chèn (giữa 2 ký tự giống nhau) và X cuối nếu cần
+        let clean = '';
+        for (let i = 0; i < out.length; i++) {
+          if (!(i>0 && i<out.length-1 && out[i] === (toLower ? 'x' : 'X') && out[i-1] === out[i+1])) {
+            clean += out[i];
+          }
+        }
+        if (clean.length && clean[clean.length-1] === (toLower ? 'x' : 'X')) clean = clean.slice(0,-1);
+        out = clean;
+      }
+
+      return out;
+    }
+
+    // --- UI handlers ---
+    document.getElementById('go').addEventListener('click', function(){
+      const text = document.getElementById('text').value;
+      const key = document.getElementById('key').value;
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const preserve = document.getElementById('preserveCase').checked;
+      if (!key.trim()) { alert('Vui lòng nhập khóa (key).'); return; }
+      if (!text.trim()) { alert('Vui lòng nhập văn bản.'); return; }
+
+      const toLower = preserve; // nếu muốn giữ chữ thường thì xử lý bằng lower-case
+      const res = playfair(text, key, mode, toLower);
+
+      // Nếu preserveCase=false, hiển thị in hoa (chuẩn), nếu true thì giữ in thường
+      document.getElementById('result').textContent = res;
+    });
+
+    document.getElementById('showMatrix').addEventListener('click', function(){
+      const key = document.getElementById('key').value;
+      const preserve = document.getElementById('preserveCase').checked;
+      if (!key.trim()) { alert('Nhập khóa để xem bảng 5x5.'); return; }
+      const mat = makeMatrix(key, preserve);
+      const cont = document.getElementById('matrixContainer');
+      cont.innerHTML = '<label>Bảng 5x5:</label><div class="matrix"></div>';
+      const grid = cont.querySelector('.matrix');
+      grid.innerHTML = '';
+      for (let r=0;r<5;r++) for (let c=0;c<5;c++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = mat[r][c];
+        grid.appendChild(cell);
+      }
+    });
+
+    // shortcut Enter on key field runs action
+    document.getElementById('key').addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('go').click(); }
+    });
+  </script>
+</body>
+</html>
